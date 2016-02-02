@@ -1,6 +1,6 @@
 '''
 UnitTest for API
-@author: Jimmy
+@author: Jimmy modified by xuym
 '''
 import unittest
 import tushare.stock.trading as td
