@@ -44,7 +44,7 @@ labels = {
 # if request == 'a':key = 'addr'
 # if name in people : print "%s's%s is %s." % (name,labels[key],people[name][key])
 
-#------------------------字典的格式化字符串--------------------------
+#------------------------字典的格式化字符串---------------------------
 print phonebook
 template = '''<html>
 <head><title>%(title)s</title></head>
