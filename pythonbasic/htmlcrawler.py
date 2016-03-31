@@ -7,6 +7,8 @@ text=urlopen('http://www.sipf.com.cn/subject/sub_ch/tjsj/index.html').read()
 soup=BeautifulSoup(text)
 print soup.originalEncoding
 soup.prettify()
+str='17,287'
+print (int)(str.replace(',',''))
 for tabb in  soup.findAll('table')[1:2]:
      tr_garanteebal=tabb.findAll('tr')[2]
      date=tr_garanteebal.findAll('p')[0].string #获取证券交易结算资金的日期时间段
@@ -14,8 +16,11 @@ for tabb in  soup.findAll('table')[1:2]:
      avgvolume=tr_garanteebal.findAll('p')[3].string#获取证券交易结算资金的平均余额
      involume=tr_garanteebal.findAll('p')[4].string#获取证券交易结算资金的转入额
      outvolume=tr_garanteebal.findAll('p')[5].string#获取证券交易结算资金的转出额
-     print date[0:4]+date[11:13]+date[-2:]+' '+endvolume+' '+avgvolume+' '+involume+' '+outvolume
-#接下来将
+     print endvolume
+# print date[0:4]+date[11:13]+date[-2:]+' '+(int)(endvolume.replace(',',''))+' '+(int)(avgvolume.replace(',',''))+' '+(int)(involume.replace(',',''))+' '+(int)(outvolume.replace(',',''))
+#接下来将定义一个函数，用于执行指定的SQL语句以及连接指定的数据库
+
+
 
 # 四大对象种类
 # Tag
