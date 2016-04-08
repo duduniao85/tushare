@@ -6,16 +6,19 @@ from sqlalchemy import *
 from sqlalchemy.types import (BigInteger, Integer, Float, Text, Boolean,
             DateTime, Date, Time, NVARCHAR, String ,CHAR)
 from sqlalchemy.sql import select
+from sqlalchemy.sql import text #用于导入自定义文本SQL
 from sqlalchemy.schema import *
+import pandas as pd
 import tushare as ts
 import re
+import matplotlib.pyplot as plt
 #开始取上次数据日期
 
 
 
 df=ts.get_hist_data('sh',start='2010-01-01')#开始取上证指数增量日期当中的行情数据
-text=urlopen('http://www.sipf.com.cn/subject/sub_ch/tjsj/index.html').read()#取官方网站当中保证金余额变动数据
-soup=BeautifulSoup(text)
+textdata=urlopen('http://www.sipf.com.cn/subject/sub_ch/tjsj/index.html').read()#取官方网站当中保证金余额变动数据
+soup=BeautifulSoup(textdata)
 soup.prettify()#格式化HTML源文本
 for tabb in  soup.findAll('table')[1:2]:
      tr_garanteebal=tabb.findAll('tr')[2]
@@ -48,27 +51,27 @@ conn.close()
 ####################################获取沪市A股数据#####################
 # mt = ts.Master()
 # df = mt.TradeCal(exchangeCD='XSHG', beginDate='20150928', endDate='20151010', field='calendarDate,isOpen,prevTradeDate')
-text=urlopen('http://www.sse.com.cn/market/stockdata/overview/day/').read()#取官方网站当中保证金余额变动数据
-print text
+textdata=urlopen('http://www.sse.com.cn/market/stockdata/overview/day/').read()#取官方网站当中保证金余额变动数据
+print textdata
 #取最新的沪市A股数据日期
-m= re.search(r'searchDate\ \=\ \'([0-9]+\-[0-9]+\-[0-9]+)\'',text)
+m= re.search(r'searchDate\ \=\ \'([0-9]+\-[0-9]+\-[0-9]+)\'',textdata)
 searchDate=m.group(1)
 #取最新的沪市A股流通市值
-m= re.search(r'negotiableValueA\ \=\ \'([0-9]+\.[0-9]+)\'',text)
+m= re.search(r'negotiableValueA\ \=\ \'([0-9]+\.[0-9]+)\'',textdata)
 negotiableValueA_sh=m.group(1)
 #取最新的沪市A股成交金额
-m= re.search(r'trdAmtA\ \=\ \'([0-9]+\.[0-9]+)\'',text)
+m= re.search(r'trdAmtA\ \=\ \'([0-9]+\.[0-9]+)\'',textdata)
 trdAmtA_sh=m.group(1)
 #取最新的沪市A股平均市盈率
-m= re.search(r'profitRateA\ \=\ \'([0-9]+\.[0-9]+)\'',text)
+m= re.search(r'profitRateA\ \=\ \'([0-9]+\.[0-9]+)\'',textdata)
 profitRateA_sh=m.group(1)
 print negotiableValueA_sh,trdAmtA_sh,profitRateA_sh,searchDate
 
 
 
 ####################################获取深市A股数据开始########################################
-text=urlopen('http://www.szse.cn/main/marketdata/tjsj/jyjg/').read()
-soup=BeautifulSoup(text)
+textdata=urlopen('http://www.szse.cn/main/marketdata/tjsj/jyjg/').read()
+soup=BeautifulSoup(textdata)
 #取数据日期
 for tabb in  soup.findAll('span',class_='cls-subtitle')[0:1]:
      searchdate_sz=tabb.string
@@ -106,5 +109,33 @@ conn.close()
 
 ####################################执行SQL并获取相应的数据集DATAFRAME,并根据DATAFRAME绘折线图##########################################
 
+db_engine=create_engine('oracle+cx_oracle://quant:1@127.0.0.1:1521/XE', echo=True)
+meta=MetaData()
+conn=db_engine.connect()
+result=conn.execute(s).fetchall() #取得所有结果集合LIST
+s=("select t1.tradeday "
+",(t1.avgvolume * 200000000/t2.liutongshizhi-0.0524763282816744)/(0.1545725264839-0.0524763282816744) "
+" as grtvol_liutongshizhi "
+",(t2.chengjiajine / t1.avgvolume / 200000000-0.0874382438006733)/(0.453180473372781-0.0874382438006733) "
+"as tradevol_grtvol     "
+",(t3.close-1950.01)/(5166.35-1950.01) as closeprice_sh "
+"  from guarantee_balance t1, a_gu_stat t2,shangzhengzongzhi t3 "
+" where t1.tradeday = t2.tradeday "
+"   and t2.tradeday = t3.\"date\" ")
+selectsql = text(s)
+result=conn.execute(selectsql) #执行查询语句
+df_result=pd.DataFrame(result.fetchall())
+df_result.columns=['TRADEDAY','GRTVOL_LIUTONGSHIZHI','TRADEVOL_GRTVOL','CLOSEPRICE_SH']
+df_result=df_result.set_index('TRADEDAY')
+print df_result.index
+df_result['GRTVOL_LIUTONGSHIZHI'].astype(float).plot()
+df_result['TRADEVOL_GRTVOL'].astype(float).plot()
+df_result['CLOSEPRICE_SH'].astype(float).plot()
+plt.legend() #显示图例
+plt.show() #展示绘图
+conn.close() #展示
+#####################################调用指定存储过程，获取最近一周成交量突然放大，但是股价涨幅在2%以内的股票####################################
+#####################################启动定时任务,以在每天16点发起以上所有操作，同时弹出历史趋势图###############################################
+#####################################获取市值200亿以内的股票清单，同时评估相关股票的市值数据#####################################################
 
-####################################启动定时任务,以在每天16点发起以上所有操作，同时弹出历史趋势图#######################################
+
