@@ -1,10 +1,15 @@
 #coding=utf-8
 __author__ = 'xuyuming'
+import os
+os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'   #解决中文乱码问题
 from urllib import urlopen
 from bs4 import BeautifulSoup
 from sqlalchemy import *
-from sqlalchemy.types import (BigInteger, Integer, Float, Text, Boolean,
-            DateTime, Date, Time, NVARCHAR, String ,CHAR)
+from sqlalchemy.dialects.oracle import \
+            BFILE, BLOB, CHAR, CLOB, DATE, \
+            DOUBLE_PRECISION, FLOAT, INTERVAL, LONG, NCLOB, \
+            NUMBER, NVARCHAR, NVARCHAR2, RAW, TIMESTAMP, VARCHAR, \
+            VARCHAR2
 from sqlalchemy.sql import select
 from sqlalchemy.sql import text #用于导入自定义文本SQL
 from sqlalchemy.schema import *
@@ -120,7 +125,7 @@ s=("select t1.tradeday "
 "as tradevol_grtvol     "
 ",(t3.close-1950.01)/(5166.35-1950.01) as closeprice_sh "
 "  from guarantee_balance t1, a_gu_stat t2,shangzhengzongzhi t3 "
-" where t1.tradeday = t2.tradeday "
+" where t1.tradeday = t2.tradeday  and t2.tradeday>'2013-01-01'"
 "   and t2.tradeday = t3.\"date\" ")
 selectsql = text(s)
 result=conn.execute(selectsql) #执行查询语句
@@ -132,10 +137,23 @@ df_result['GRTVOL_LIUTONGSHIZHI'].astype(float).plot()
 df_result['TRADEVOL_GRTVOL'].astype(float).plot()
 df_result['CLOSEPRICE_SH'].astype(float).plot()
 plt.legend() #显示图例
+plt.grid(true)
 plt.show() #展示绘图
 conn.close() #展示
-#####################################调用指定存储过程，获取最近一周成交量突然放大，但是股价涨幅在2%以内的股票####################################
-#####################################启动定时任务,以在每天16点发起以上所有操作，同时弹出历史趋势图###############################################
+#####################################调用通联函数，取A股历史行情##################################################################################
+db_engine=create_engine('oracle+cx_oracle://quant:1@127.0.0.1:1521/XE?charset=utf8', echo=True)
+conn=db_engine.connect()
+df=ts.get_stock_basics()
+# df.to_sql('stock_basics',db_engine,if_exists='replace',dtype={'code': CHAR(6), 'name':VARCHAR2(128), 'area':VARCHAR2(128),\
+#                                                               'industry':VARCHAR2(128)})
+#开始归档前复权历史行情至数据库当中，以便可以方便地计算后续选股模型
+for code in   df.index:
+     df_h_data=ts.get_h_data(code,start='2015-12-31')
+     df_h_data['secucode']=code
+     df_h_data.to_sql('h_dailyquote',db_engine,if_exists='append',dtype={'secucode': CHAR(6)})
+conn.close()
+#####################################调用指定存储过程，获取最近一周成交量突然放大，但是股价涨幅在2%以内的股票#####################################
+#####################################启动定时任务,以在每天16点发起以上所有操作，同时弹出历史趋势图################################################
 #####################################获取市值200亿以内的股票清单，同时评估相关股票的市值数据 #####################################################
 
 
