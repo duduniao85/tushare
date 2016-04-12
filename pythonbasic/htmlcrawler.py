@@ -3,6 +3,7 @@ __author__ = 'xuyuming'
 import os
 os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'   #解决中文乱码问题
 from urllib import urlopen
+import time
 from bs4 import BeautifulSoup
 from sqlalchemy import *
 from sqlalchemy.dialects.oracle import \
@@ -146,14 +147,20 @@ conn=db_engine.connect()
 df=ts.get_stock_basics()
 # df.to_sql('stock_basics',db_engine,if_exists='replace',dtype={'code': CHAR(6), 'name':VARCHAR2(128), 'area':VARCHAR2(128),\
 #                                                               'industry':VARCHAR2(128)})
-#开始归档前复权历史行情至数据库当中，以便可以方便地计算后续选股模型
-for code in   df.index:
-     df_h_data=ts.get_h_data(code,start='2015-12-31')
+df.index.name='secucode'
+# 开始归档前复权历史行情至数据库当中，以便可以方便地计算后续选股模型
+i = 1
+for code in  df.index:
+     i = i+1
+     if 1%100 == 0:
+          time.sleep(20)
+     df_h_data=ts.get_h_data(code,start='2015-12-31',retry_count=10,pause=0.01)
      df_h_data['secucode']=code
+     df_h_data.index.name = 'tradeday'
      df_h_data.to_sql('h_dailyquote',db_engine,if_exists='append',dtype={'secucode': CHAR(6)})
 conn.close()
-#####################################调用指定存储过程，获取最近一周成交量突然放大，但是股价涨幅在2%以内的股票#####################################
-#####################################启动定时任务,以在每天16点发起以上所有操作，同时弹出历史趋势图################################################
-#####################################获取市值200亿以内的股票清单，同时评估相关股票的市值数据 #####################################################
+###################调用指定存储过程，获取最近一周成交量突然放大，但是股价涨幅在2%以内的股票，执行SQL,返回查询结果#########################################
+#####################################启动定时任务,以在每天16点发起以上所有操作，同时将趋势图和候选股票直接发送邮件########################################
+#####################################获取市值200亿以内的股票清单，同时评估相关股票的市值数据 #############################################################
 
 

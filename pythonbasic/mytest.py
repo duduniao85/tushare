@@ -68,4 +68,22 @@ import re
 #
 #
 #
-print ts.get_stock_basics()
+from apscheduler.scheduler import Scheduler  #注意只能使用3.0以前的版本的定时器
+import datetime
+schedudler = Scheduler(daemonic = False)
+df=ts.get_stock_basics()
+secucode=df.index
+print df.index
+df.index.name='secucode'
+print df.columns
+print df.index
+
+from apscheduler.scheduler import Scheduler
+
+schedudler = Scheduler(daemonic = False)#不建议使用守护线程
+#以下通过标注完成了针对指定函数进行调用的手段。
+@schedudler.cron_schedule(second='*', day_of_week='0-4', hour='9-12,13-15')
+def quote_send_sh_job():
+    print 'a simple cron job start at', datetime.datetime.now()
+
+schedudler.start()
