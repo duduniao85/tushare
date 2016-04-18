@@ -5,8 +5,11 @@ import tushare as ts
 from urllib import urlopen
 from bs4 import BeautifulSoup
 from sqlalchemy import *
-from sqlalchemy.types import (BigInteger, Integer, Float, Text, Boolean,
-            DateTime, Date, Time, NVARCHAR, String ,CHAR)
+from sqlalchemy.dialects.oracle import \
+            BFILE, BLOB, CHAR, CLOB, DATE, \
+            DOUBLE_PRECISION, FLOAT, INTERVAL, LONG, NCLOB, \
+            NUMBER, NVARCHAR, NVARCHAR2, RAW, TIMESTAMP, VARCHAR, \
+            VARCHAR2  #引入ORACLE专用字符集
 from sqlalchemy.sql import select
 from sqlalchemy.schema import *
 import tushare as ts
@@ -77,13 +80,23 @@ print df.index
 df.index.name='secucode'
 print df.columns
 print df.index
+print ts.get_h_data('603822',start='2015-12-31',retry_count=10,pause=0.1)
 
-from apscheduler.scheduler import Scheduler
-
-schedudler = Scheduler(daemonic = False)#不建议使用守护线程
-#以下通过标注完成了针对指定函数进行调用的手段。
-@schedudler.cron_schedule(second='*', day_of_week='0-4', hour='9-12,13-15')
-def quote_send_sh_job():
-    print 'a simple cron job start at', datetime.datetime.now()
-
-schedudler.start()
+# from apscheduler.scheduler import Scheduler
+# db_engine=create_engine('oracle+cx_oracle://quant:1@127.0.0.1:1521/XE?charset=utf8', echo=True)
+# conn=db_engine.connect()
+# year=2015
+# season=4
+# #先执行当前季度的数据的删除，后执行插入，避名和
+# df=ts.get_growth_data(year,season)
+# df['year']=year
+# df['season']=season
+# df.to_sql('h_growth_data',db_engine,if_exists='append',dtype={'code': CHAR(6),'name': VARCHAR2(128)})
+# conn.close()
+# schedudler = Scheduler(daemonic = False)#不建议使用守护线程
+# #以下通过标注完成了针对指定函数进行调用的手段。
+# @schedudler.cron_schedule(second='*', day_of_week='0-4', hour='9-12,13-15')
+# def quote_send_sh_job():
+#     print 'a simple cron job start at', datetime.datetime.now()
+#
+# schedudler.start()

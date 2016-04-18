@@ -1,16 +1,17 @@
 #coding=utf-8
 __author__ = 'xuyuming'
 import os
-os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'   #解决中文乱码问题
+os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'   #解决ORACLE插入中文乱码问题
 from urllib import urlopen
 import time
 from bs4 import BeautifulSoup
 from sqlalchemy import *
+import util
 from sqlalchemy.dialects.oracle import \
             BFILE, BLOB, CHAR, CLOB, DATE, \
             DOUBLE_PRECISION, FLOAT, INTERVAL, LONG, NCLOB, \
             NUMBER, NVARCHAR, NVARCHAR2, RAW, TIMESTAMP, VARCHAR, \
-            VARCHAR2
+            VARCHAR2  #引入ORACLE专用字符集
 from sqlalchemy.sql import select
 from sqlalchemy.sql import text #用于导入自定义文本SQL
 from sqlalchemy.schema import *
@@ -18,6 +19,9 @@ import pandas as pd
 import tushare as ts
 import re
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import savefig
+import datetime
+
 #开始取上次数据日期
 
 
@@ -58,7 +62,7 @@ conn.close()
 # mt = ts.Master()
 # df = mt.TradeCal(exchangeCD='XSHG', beginDate='20150928', endDate='20151010', field='calendarDate,isOpen,prevTradeDate')
 textdata=urlopen('http://www.sse.com.cn/market/stockdata/overview/day/').read()#取官方网站当中保证金余额变动数据
-print textdata
+# print textdata
 #取最新的沪市A股数据日期
 m= re.search(r'searchDate\ \=\ \'([0-9]+\-[0-9]+\-[0-9]+)\'',textdata)
 searchDate=m.group(1)
@@ -81,17 +85,17 @@ soup=BeautifulSoup(textdata)
 #取数据日期
 for tabb in  soup.findAll('span',class_='cls-subtitle')[0:1]:
      searchdate_sz=tabb.string
-     print searchdate_sz
+     # print searchdate_sz
 for tabb in  soup.findAll('tr',class_='cls-data-tr')[0:1]:
      total_tradeamt=tabb.findAll('td')[2].string #股票总成交金额
-     print total_tradeamt
+     # print total_tradeamt
      negotiableValue=tabb.findAll('td')[7].string #股票总流通市值
-     print negotiableValue
+     # print negotiableValue
 for tabb in  soup.findAll('tr',class_='cls-data-tr')[2:3]:
      tradeamtB=tabb.findAll('td')[2].string #b股总成交金额
-     print tradeamtB
+     # print tradeamtB
      negotiableValueB=tabb.findAll('td')[7].string #b股总流通市值
-     print negotiableValueB
+     # print negotiableValueB
 negotiableValueA_sz=int(negotiableValue.replace(',',''))-int(negotiableValueB.replace(',',''))   # 深市A股总流通市值为深市总市值减去深市B股总市值
 tradeamtA_sz=int(total_tradeamt.replace(',',''))-int(tradeamtB.replace(',','')) # 深市A股总成交额为深市总成交额减去深市B股总成交额
 print negotiableValueA_sz,tradeamtA_sz
@@ -107,7 +111,7 @@ ins=t.insert().values(tradeday=searchdate_sz,liutongshizhi=int(total_negotiableV
 conn=db_engine.connect()
 s=select([t]).where(t.c.tradeday==searchdate_sz)#查找是否该交易日已经有了对应的数据
 result=conn.execute(s).fetchall() #取得所有结果集合LIST
-print  type(result)
+# print  type(result)
 if len(result)==0:
      conn.execute(ins) #插入A股成交额和流通市值统计数据表
 conn.close()
@@ -139,28 +143,49 @@ df_result['TRADEVOL_GRTVOL'].astype(float).plot()
 df_result['CLOSEPRICE_SH'].astype(float).plot()
 plt.legend() #显示图例
 plt.grid(true)
-plt.show() #展示绘图
-conn.close() #展示
+# plt.show() #展示绘图
+savefig(r'd:\temp\trend_'+tradeday+r'.jpg')
+conn.close() #关闭数据库连接
+#
+# util.sendmail(mail_from='clark_xym@163.com' ,mail_to=['283548048@QQ.COM'] ,\
+#          mail_body='garanteebal_trend',mail_title='garanteebal_trend'+tradeday,smtpserver='smtp.163.com',\
+#          username='clark_xym@163.com',passwd='1qaz2wsx',filepath=r'd:\temp\trend_'+tradeday+r'.jpg',attachname='trend.jpg')
+
 #####################################调用通联函数，取A股历史行情##################################################################################
 db_engine=create_engine('oracle+cx_oracle://quant:1@127.0.0.1:1521/XE?charset=utf8', echo=True)
 conn=db_engine.connect()
 df=ts.get_stock_basics()
+print df
 # df.to_sql('stock_basics',db_engine,if_exists='replace',dtype={'code': CHAR(6), 'name':VARCHAR2(128), 'area':VARCHAR2(128),\
 #                                                               'industry':VARCHAR2(128)})
 df.index.name='secucode'
 # 开始归档前复权历史行情至数据库当中，以便可以方便地计算后续选股模型
-i = 1
-for code in  df.index:
-     i = i+1
-     if 1%100 == 0:
-          time.sleep(20)
-     df_h_data=ts.get_h_data(code,start='2015-12-31',retry_count=10,pause=0.01)
-     df_h_data['secucode']=code
-     df_h_data.index.name = 'tradeday'
-     df_h_data.to_sql('h_dailyquote',db_engine,if_exists='append',dtype={'secucode': CHAR(6)})
+sql= text("select distinct secucode from   h_dailyquote")
+result=conn.execute(sql) #执行查询语句
+df_result=pd.DataFrame(result.fetchall())
+df_result.columns=['secucode']
+df_result.set_index('secucode')
+print set(list(df.index)).difference(set(list(df_result['secucode'])))
+# for code in  set(list(df.index)).difference(set(list(df_result['secucode']))):
+#     print code
+#     try:
+#         df_h_data=ts.get_h_data(code,start='2015-12-31',retry_count=10,pause=0.1)
+#     except Exception , e:
+#         time.sleep(30)
+#         print str(e)
+#         continue
+#     try:
+#         df_h_data['secucode']=code
+#         df_h_data.index.name = 'tradeday'
+#         df_h_data.to_sql('h_dailyquote',db_engine,if_exists='append',dtype={'secucode': CHAR(6)})
+#     except Exception , e: #如果是新股，则有可能df_h_data是空对象，因此需要跳过此类情况不处理
+#         print str(e)
+#         continue
 conn.close()
 ###################调用指定存储过程，获取最近一周成交量突然放大，但是股价涨幅在2%以内的股票，执行SQL,返回查询结果#########################################
+
 #####################################启动定时任务,以在每天16点发起以上所有操作，同时将趋势图和候选股票直接发送邮件########################################
+
 #####################################获取市值200亿以内的股票清单，同时评估相关股票的市值数据 #############################################################
 
 
