@@ -14,6 +14,7 @@ from sqlalchemy.sql import select
 from sqlalchemy.schema import *
 import tushare as ts
 import re
+import pandas as pd
 # ts.get_h_data(code='399106',index=True,end='2016-03-31')
 # print ts.get_h_data(code='000001',start='2013-01-01',index=True,autype=None)
 # df=ts.get_today_all()#一次性获取最近一个日交易日所有股票的交易数据

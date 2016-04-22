@@ -2,7 +2,7 @@
 __author__ = 'xuyuming'
 
 """
-带附件的邮件发送接口
+定义常见的函数
 Created on 2016/04/16
 @author: clark xu
 @group :
