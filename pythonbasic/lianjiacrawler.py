@@ -3,7 +3,7 @@ __author__ = 'xuyuming'
 from urllib import urlopen
 import time
 from bs4 import BeautifulSoup
-textdata=urlopen('http://sh.lianjia.com/chengjiao/d1000').read()#取官方网站当中保证金余额变动数据
+textdata=urlopen('http://sh.lianjia.com/chengjiao/d1000').read()
 soup=BeautifulSoup(textdata,'lxml')
 # print soup
 # body > div.wrapper > div.main-box.clear > div > div.list-wrap > ul > li:nth-child(1) > div.info-panel > h2 > a

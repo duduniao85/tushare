@@ -23,23 +23,23 @@ from matplotlib.pyplot import savefig
 import datetime
 
 #开始取上次数据日期
-
-
-
 df=ts.get_hist_data('sh',start='2010-01-01')#开始取上证指数增量日期当中的行情数据
-textdata=urlopen('http://www.sipf.com.cn/subject/sub_ch/tjsj/index.html').read()#取官方网站当中保证金余额变动数据
-soup=BeautifulSoup(textdata)
-soup.prettify()#格式化HTML源文本
-for tabb in  soup.findAll('table')[1:2]:
-     tr_garanteebal=tabb.findAll('tr')[2]
-     date=tr_garanteebal.findAll('p')[0].string #获取证券交易结算资金的日期时间段
-     print date
-     endvolume= tr_garanteebal.findAll('p')[2].string#获取证券交易结算资金的期末余额
-     avgvolume=tr_garanteebal.findAll('p')[3].string#获取证券交易结算资金的平均余额
-     involume=tr_garanteebal.findAll('p')[4].string#获取证券交易结算资金的转入额
-     outvolume=tr_garanteebal.findAll('p')[5].string#获取证券交易结算资金的转出额
-     tradeday=date[0:4]+'-'+date[11:13]+'-'+date[-2:]
-     print tradeday
+textdata=urlopen('http://www.sipf.com.cn/zjjk/tjsj/index.shtml').read()#取官方网站当中保证金余额变动数据,20160530源网页发生了变革，根据CSS路径取数规则需要变更
+soup=BeautifulSoup(textdata,'lxml')
+print soup.prettify()#格式化HTML源文本
+date=list(soup.select('body > div.main.cl > div.main-auto > div.count > div:nth-of-type(3) > table > tbody > tr:nth-of-type(3) > td:nth-of-type(1)')[0].stripped_strings) #获取证券交易结算资金的日期时间段
+date=date[0]
+tradeday=date[0:4]+'-'+date[11:13]+'-'+date[-2:]
+print tradeday
+endvolume= soup.select('body > div.main.cl > div.main-auto > div.count > div:nth-of-type(3) > table > tbody > tr:nth-of-type(3) > td:nth-of-type(3) > p')[0].stripped_strings#获取证券交易结算资金的期末余额
+endvolume = list(endvolume)[0]
+avgvolume=soup.select('body > div.main.cl > div.main-auto > div.count > div:nth-of-type(3) > table > tbody > tr:nth-of-type(3) > td:nth-of-type(4) > p')[0].stripped_strings#获取证券交易结算资金的平均余额
+avgvolume= list(avgvolume)[0]
+involume=soup.select('body > div.main.cl > div.main-auto > div.count > div:nth-of-type(3) > table > tbody > tr:nth-of-type(3) > td:nth-of-type(5) > p')[0].stripped_strings#获取证券交易结算资金的转入额
+involume=list(involume)[0]
+
+outvolume=soup.select('body > div.main.cl > div.main-auto > div.count > div:nth-of-type(3) > table > tbody > tr:nth-of-type(3) > td:nth-of-type(6) > p')[0].stripped_strings#获取证券交易结算资金的转出额
+outvolume=list(outvolume)[0]
 # print date[0:4]+date[11:13]+date[-2:]+' '+(int)(endvolume.replace(',',''))+' '+(int)(avgvolume.replace(',',''))+' '+(int)(involume.replace(',',''))+' '+(int)(outvolume.replace(',',''))
 #接下来将定义一个函数，用于执行指定的SQL语句以及连接指定的数据库
 db_engine=create_engine('oracle+cx_oracle://quant:1@127.0.0.1:1521/XE', echo=True)
@@ -49,7 +49,6 @@ ins=t.insert().values(tradeday=tradeday,endvolume=int(endvolume.replace(',',''))
 conn=db_engine.connect()
 s=select([t]).where(t.c.tradeday==tradeday)
 result=conn.execute(s).fetchall() #取得所有结果集合LIST
-print  type(result)
 if len(result)==0:
      conn.execute(ins) #插入保证金余额表
 df.to_sql('shangzhengzongzhi',db_engine,if_exists='replace',dtype={'date': CHAR(10)})#将历史的上证指数行情数据落到本地
@@ -135,9 +134,8 @@ s=("select t1.tradeday "
 selectsql = text(s)
 result=conn.execute(selectsql) #执行查询语句
 df_result=pd.DataFrame(result.fetchall())
-df_result.columns=['TRADEDAY','GRTVOL_LIUTONGSHIZHI','TRADEVOL_GRTVOL','CLOSEPRICE_SH']
+df_result.columns=['TRADEDAY','GRTVOL_LIUTONGSHIZHI','TRADEVOL_GRTVOL','CLOSEPRICE_SH']#列重命名
 df_result=df_result.set_index('TRADEDAY')
-print df_result.index
 df_result['GRTVOL_LIUTONGSHIZHI'].astype(float).plot()
 df_result['TRADEVOL_GRTVOL'].astype(float).plot()
 df_result['CLOSEPRICE_SH'].astype(float).plot()
@@ -146,30 +144,29 @@ plt.grid(true)
 # plt.show() #展示绘图
 savefig(r'd:\temp\trend_'+tradeday+r'.jpg')
 conn.close() #关闭数据库连接
-#
-# util.sendmail(mail_from='clark_xym@163.com' ,mail_to=['283548048@QQ.COM'] ,\
-#          mail_body='garanteebal_trend',mail_title='garanteebal_trend'+tradeday,smtpserver='smtp.163.com',\
-#          username='clark_xym@163.com',passwd='1qaz2wsx',filepath=r'd:\temp\trend_'+tradeday+r'.jpg',attachname='trend.jpg')
+
+util.sendmail(mail_from='clark_xym@163.com' ,mail_to=['283548048@QQ.COM'] ,\
+         mail_body='garanteebal_trend',mail_title='garanteebal_trend'+tradeday,smtpserver='smtp.163.com',\
+         username='clark_xym@163.com',passwd='1qaz2wsx',filepath=r'd:\temp\trend_'+tradeday+r'.jpg',attachname='trend.jpg')
 
 #####################################调用通联函数，取A股历史行情##################################################################################
 db_engine=create_engine('oracle+cx_oracle://quant:1@127.0.0.1:1521/XE?charset=utf8', echo=True)
 conn=db_engine.connect()
 df=ts.get_stock_basics()
 print df
-# df.to_sql('stock_basics',db_engine,if_exists='replace',dtype={'code': CHAR(6), 'name':VARCHAR2(128), 'area':VARCHAR2(128),\
-#                                                               'industry':VARCHAR2(128)})
+df.to_sql('stock_basics',db_engine,if_exists='replace',dtype={'code': CHAR(6), 'name':VARCHAR2(128), 'area':VARCHAR2(128),\
+                                                              'industry':VARCHAR2(128)})
 df.index.name='secucode'
 # 开始归档前复权历史行情至数据库当中，以便可以方便地计算后续选股模型
-sql= text("select distinct secucode from   h_dailyquote")
+sql= text("select distinct secucode from h_dailyquote")
 result=conn.execute(sql) #执行查询语句
 df_result=pd.DataFrame(result.fetchall())
 df_result.columns=['secucode']
 df_result.set_index('secucode')
-print set(list(df.index)).difference(set(list(df_result['secucode'])))
-# for code in  set(list(df.index)).difference(set(list(df_result['secucode']))):
+# for code in  set(list(df.index)):
 #     print code
 #     try:
-#         df_h_data=ts.get_h_data(code,start='2015-12-31',retry_count=10,pause=0.1)
+#         df_h_data=ts.get_h_data(code,start='2016-05-21',retry_count=10,pause=0.01)#包含START
 #     except Exception , e:
 #         time.sleep(30)
 #         print str(e)
@@ -181,11 +178,9 @@ print set(list(df.index)).difference(set(list(df_result['secucode'])))
 #     except Exception , e: #如果是新股，则有可能df_h_data是空对象，因此需要跳过此类情况不处理
 #         print str(e)
 #         continue
-conn.close()
+# conn.close()
 ###################调用指定存储过程，获取最近一周成交量突然放大，但是股价涨幅在2%以内的股票，执行SQL,返回查询结果#########################################
-
 #####################################启动定时任务,以在每天16点发起以上所有操作，同时将趋势图和候选股票直接发送邮件########################################
-
 #####################################获取市值200亿以内的股票清单，同时评估相关股票的市值数据 #############################################################
 
 

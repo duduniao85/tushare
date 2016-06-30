@@ -1,7 +1,7 @@
 #coding=utf-8
 __author__ = 'xuyuming'
 import tushare as ts
-
+import random 
 from urllib import urlopen
 from bs4 import BeautifulSoup
 from sqlalchemy import *
@@ -72,16 +72,16 @@ import pandas as pd
 #
 #
 #
-from apscheduler.scheduler import Scheduler  #注意只能使用3.0以前的版本的定时器
-import datetime
-schedudler = Scheduler(daemonic = False)
-df=ts.get_stock_basics()
-secucode=df.index
-print df.index
-df.index.name='secucode'
-print df.columns
-print df.index
-print ts.get_h_data('603822',start='2015-12-31',retry_count=10,pause=0.1)
+# from apscheduler.scheduler import Scheduler  #注意只能使用3.0以前的版本的定时器
+# import datetime
+# schedudler = Scheduler(daemonic = False)
+# df=ts.get_stock_basics()
+# secucode=df.index
+# print df.index
+# df.index.name='secucode'
+# print df.columns
+# print df.index
+# print ts.get_h_data('603822',start='2015-12-31',retry_count=10,pause=0.1)
 
 # from apscheduler.scheduler import Scheduler
 # db_engine=create_engine('oracle+cx_oracle://quant:1@127.0.0.1:1521/XE?charset=utf8', echo=True)
@@ -101,3 +101,22 @@ print ts.get_h_data('603822',start='2015-12-31',retry_count=10,pause=0.1)
 #     print 'a simple cron job start at', datetime.datetime.now()
 #
 # schedudler.start()
+list=[1,3,2]
+data=pd.DataFrame(list)
+print data
+import datetime
+print type(datetime.date.today())
+print datetime.datetime.now()
+print datetime.date.today()+datetime.timedelta(days=1000)
+#strptime() 与 strftime() 完成日期和字符串的操作
+import time
+a=input("please input 0 or 1:")
+start_time = time.time()
+start_clock= time.clock()
+print start_time
+print start_clock#clock()更
+list1=[1,2,3]
+list2=[]
+print zip(list1,list2)
+import random
+print [random.randint(1,10) for i in xrange(10)]
