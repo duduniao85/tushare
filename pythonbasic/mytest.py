@@ -1,6 +1,7 @@
 #coding=utf-8
 __author__ = 'xuyuming'
 import tushare as ts
+print ts.get_h_data('002467',start='2016-07-01',retry_count=10,pause=0.01)
 import random 
 from urllib import urlopen
 from bs4 import BeautifulSoup
