@@ -51,7 +51,7 @@ s=select([t]).where(t.c.tradeday==tradeday)
 result=conn.execute(s).fetchall() #取得所有结果集合LIST
 if len(result)==0:
      conn.execute(ins) #插入保证金余额表
-df.to_sql('shangzhengzongzhi',db_engine,if_exists='replace',dtype={'date': CHAR(10)})#将历史的上证指数行情数据落到本地
+# df.to_sql('shangzhengzongzhi',db_engine,if_exists='replace',dtype={'date': CHAR(10)})#将历史的上证指数行情数据落到本地
 conn.close()
 ######################################下面开始抓取每日A股流通市值数据和总成交金额，如果有一天存在漏抽，#######
 # 则需要从上交所和深交所网站中提取相关数据补录################################################################
@@ -59,7 +59,6 @@ conn.close()
 
 ####################################获取沪市A股数据#####################
 # mt = ts.Master()
-print '中文'
 # df = mt.TradeCal(exchangeCD='XSHG', beginDate='20150928', endDate='20151010', field='calendarDate,isOpen,prevTradeDate')
 textdata=urlopen('http://www.sse.com.cn/market/stockdata/overview/day/').read()#取官方网站当中保证金余额变动数据
 # print textdata
@@ -131,7 +130,7 @@ s=("select t1.tradeday "
 ",(t3.close-1950.01)/(5166.35-1950.01) as closeprice_sh "
 "  from guarantee_balance t1, a_gu_stat t2,shangzhengzongzhi t3 "
 " where t1.tradeday = t2.tradeday  and t2.tradeday>'2013-01-01'"
-"   and t2.tradeday = t3.\"date\" order by tradeday ")
+"   and t2.tradeday = t3.\"date\" ")
 selectsql = text(s)
 result=conn.execute(selectsql) #执行查询语句
 df_result=pd.DataFrame(result.fetchall())
@@ -145,32 +144,34 @@ plt.grid(true)
 # plt.show() #展示绘图
 savefig(r'd:\temp\trend_'+tradeday+r'.jpg')
 conn.close() #关闭数据库连接
-
+#
 # util.sendmail(mail_from='clark_xym@163.com' ,mail_to=['283548048@QQ.COM'] ,\
 #          mail_body='garanteebal_trend',mail_title='garanteebal_trend'+tradeday,smtpserver='smtp.163.com',\
 #          username='clark_xym@163.com',passwd='1qaz2wsx',filepath=r'd:\temp\trend_'+tradeday+r'.jpg',attachname='trend.jpg')
 
 #####################################调用通联函数，取A股历史行情##################################################################################
-# db_engine=create_engine('oracle+cx_oracle://quant:1@127.0.0.1:1521/XE?charset=utf8', echo=True)
-# conn=db_engine.connect()
-# df=ts.get_stock_basics()
-# print df
-# df.to_sql('stock_basics',db_engine,if_exists='replace',dtype={'code': CHAR(6), 'name':VARCHAR2(128), 'area':VARCHAR2(128),\
-#                                                               'industry':VARCHAR2(128)})
-# df.index.name='secucode'
-# # 开始归档前复权历史行情至数据库当中，以便可以方便地计算后续选股模型
-# sql= text("select distinct secucode from h_dailyquote")
-# result=conn.execute(sql) #执行查询语句
-# df_result=pd.DataFrame(result.fetchall())
-# df_result.columns=['secucode']
-# df_result.set_index('secucode')
+db_engine=create_engine('oracle+cx_oracle://quant:1@127.0.0.1:1521/XE?charset=utf8', echo=True)
+conn=db_engine.connect()
+df=ts.get_stock_basics()
+print df
+df.columns=['NAME','INDUSTRY','AREA','PE','OUTSTANDING','TOTALS','TOTALASSETS','LIQUIDASSETS','FIXEDASSETS',\
+            'RESERVED','RESERVEDPERSHARE','EPS','BVPS','PB','TIMETOMARKET']
+df.to_sql('stock_basics',db_engine,if_exists='replace',dtype={'code': VARCHAR2(6), 'NAME':VARCHAR2(128), 'AREA':VARCHAR2(128),\
+                                                              'INDUSTRY':VARCHAR2(128)})
+df.index.name='secucode'
+# 开始归档前复权历史行情至数据库当中，以便可以方便地计算后续选股模型
+sql= text("select distinct secucode from h_dailyquote")
+result=conn.execute(sql) #执行查询语句
+df_result=pd.DataFrame(result.fetchall())
+df_result.columns=['secucode']
+df_result.set_index('secucode')
 # for code in  set(list(df.index)):
 #     print code
 #     try:
-#         df_h_data=ts.get_h_data(code,start='2016-07-13',end='2016-07-14',retry_count=10,pause=0.01)#包含START
+#         df_h_data=ts.get_h_data(code,start='2016-05-21',retry_count=10,pause=0.01)#包含START
 #     except Exception , e:
-#         print str(e)
 #         time.sleep(30)
+#         print str(e)
 #         continue
 #     try:
 #         df_h_data['secucode']=code
