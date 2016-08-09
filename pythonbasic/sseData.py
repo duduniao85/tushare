@@ -11,6 +11,8 @@ import time
 ###############################取深交所相关统计数据#################################################
 driver=webdriver.Chrome()
 driver.get("http://www.szse.cn/main/marketdata/tjsj/jyjg/")
+#抓取上交所交易日历数据
+#开始按每个交易日循环
 driver.find_element_by_name("txtDate").clear()
 driver.find_element_by_name("txtDate").send_keys("2016-08-05")##2016-08-05 取相关统计数据的数据日期，每个交易日都取出来
 driver.find_element_by_id("1804_tab1_btn").click()
@@ -28,4 +30,6 @@ negotiableValueA_sz=int(negotiableValue.replace(',',''))-int(negotiableValueB.re
 tradeamtA_sz=int(total_tradeamt.replace(',',''))-int(tradeamtB.replace(',','')) # 深市A股总成交额为深市总成交额减去深市B股总成交额
 print negotiableValueA_sz,tradeamtA_sz
 
+
 ##################################取上交所相关统计数据###############################################
+#开始按每个交易日循环
