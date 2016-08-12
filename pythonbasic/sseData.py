@@ -33,9 +33,12 @@ print negotiableValueA_sz,tradeamtA_sz
 
 ##################################取上交所相关统计数据###############################################
 #开始按每个交易日循环
-WebElement dayElement=driver.findElement(By.xpath("//span[@id='from_imageClick']"));
-dayElement.click();
-// WebElement frameElement=driver.findElement(By.xpath("//iframe[@border='0']"));
-driver.switchTo().frame(1);
-driver.findElement(By.xpath("//tr/td[@onclick='day_Click(2015,2,21);']")).click();
-driver.switchTo().defaultContent();
+#remove readonly attribute
+driver.executeScript("var setDate=document.getElementById('start_date2');setDate.removeAttribute('readonly');")
+#定位到日期控件
+setDatElement=driver.findElement(By.xpath("//input[@id='train_date']"))
+#清除内容
+setDatElement.clear();
+#重新填上指定的值
+setDatElement.sendKeys("2015-02-18");
+#点击“查询”按钮
