@@ -10,6 +10,8 @@ import sys
 reload(sys)
 sys.setdefaultencoding( "utf-8" )
 
+#爬取链家网挂牌房源
+
 def http_post_for_deals(offset):
     """
     http://soa.dooioo.com/api/v4/online/house/ershoufang/search
@@ -38,7 +40,7 @@ def http_post_for_deals(offset):
 
 if __name__ == '__main__':
     hasMoreData=1
-    offset=54850
+    offset=72900
     while(True):
         time.sleep(2)
         jsonObj= http_post_for_deals(offset)
@@ -46,7 +48,7 @@ if __name__ == '__main__':
         if hasMoreData == 0 :
             break
         itemList= jsonObj.get('data').get('list')
-        filename=r'd:\temp\guapai.csv'
+        filename=r'd:\temp\guapai20160804.csv'
         if len(itemList)>0:
             df=pd.DataFrame(itemList)
             try:

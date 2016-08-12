@@ -51,7 +51,7 @@ s=select([t]).where(t.c.tradeday==tradeday)
 result=conn.execute(s).fetchall() #取得所有结果集合LIST
 if len(result)==0:
      conn.execute(ins) #插入保证金余额表
-# df.to_sql('shangzhengzongzhi',db_engine,if_exists='replace',dtype={'date': CHAR(10)})#将历史的上证指数行情数据落到本地
+df.to_sql('shangzhengzongzhi',db_engine,if_exists='replace',dtype={'date': CHAR(10)})#将历史的上证指数行情数据落到本地
 conn.close()
 ######################################下面开始抓取每日A股流通市值数据和总成交金额，如果有一天存在漏抽，#######
 # 则需要从上交所和深交所网站中提取相关数据补录################################################################
@@ -59,6 +59,7 @@ conn.close()
 
 ####################################获取沪市A股数据#####################
 # mt = ts.Master()
+print '中文'
 # df = mt.TradeCal(exchangeCD='XSHG', beginDate='20150928', endDate='20151010', field='calendarDate,isOpen,prevTradeDate')
 textdata=urlopen('http://www.sse.com.cn/market/stockdata/overview/day/').read()#取官方网站当中保证金余额变动数据
 # print textdata
@@ -130,7 +131,7 @@ s=("select t1.tradeday "
 ",(t3.close-1950.01)/(5166.35-1950.01) as closeprice_sh "
 "  from guarantee_balance t1, a_gu_stat t2,shangzhengzongzhi t3 "
 " where t1.tradeday = t2.tradeday  and t2.tradeday>'2013-01-01'"
-"   and t2.tradeday = t3.\"date\" ")
+"   and t2.tradeday = t3.\"date\" order by tradeday ")
 selectsql = text(s)
 result=conn.execute(selectsql) #执行查询语句
 df_result=pd.DataFrame(result.fetchall())
@@ -144,7 +145,7 @@ plt.grid(true)
 # plt.show() #展示绘图
 savefig(r'd:\temp\trend_'+tradeday+r'.jpg')
 conn.close() #关闭数据库连接
-#
+
 # util.sendmail(mail_from='clark_xym@163.com' ,mail_to=['283548048@QQ.COM'] ,\
 #          mail_body='garanteebal_trend',mail_title='garanteebal_trend'+tradeday,smtpserver='smtp.163.com',\
 #          username='clark_xym@163.com',passwd='1qaz2wsx',filepath=r'd:\temp\trend_'+tradeday+r'.jpg',attachname='trend.jpg')
@@ -168,10 +169,10 @@ df_result.set_index('secucode')
 # for code in  set(list(df.index)):
 #     print code
 #     try:
-#         df_h_data=ts.get_h_data(code,start='2016-05-21',retry_count=10,pause=0.01)#包含START
+#         df_h_data=ts.get_h_data(code,start='2016-07-23',end='2016-07-29',retry_count=10,pause=0.01)#包含START
 #     except Exception , e:
-#         time.sleep(30)
 #         print str(e)
+#         time.sleep(30)
 #         continue
 #     try:
 #         df_h_data['secucode']=code
@@ -180,7 +181,7 @@ df_result.set_index('secucode')
 #     except Exception , e: #如果是新股，则有可能df_h_data是空对象，因此需要跳过此类情况不处理
 #         print str(e)
 #         continue
-# conn.close()
+conn.close()
 ###################调用指定存储过程，获取最近一周成交量突然放大，但是股价涨幅在2%以内的股票，执行SQL,返回查询结果#########################################
 #####################################启动定时任务,以在每天16点发起以上所有操作，同时将趋势图和候选股票直接发送邮件########################################
 #####################################获取市值200亿以内的股票清单，同时评估相关股票的市值数据 #############################################################
